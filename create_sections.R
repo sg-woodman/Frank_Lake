@@ -56,7 +56,6 @@ ft_125 <- st_buffer(ft_coord, 125)
 ft_150 <- st_buffer(ft_coord, 150)
 
 ## Create a dataframe of coordinates
-
 point_df <-
   # convert sf point object to x,y coordinates
   st_coordinates(ft_coord) %>%
@@ -68,7 +67,7 @@ point_df <-
   # create dataframe from all combinations of inputs
   expand_grid(.,
               # degrees at 22.5 degree increments
-              degrees = seq(0, 360, 22.5),
+              degrees = seq(0, 337.5, 22.5),
               # distance from flux tower at 25 m increments
               radius = seq(25, 150, 25)) %>%
   # calculate new variables
@@ -77,9 +76,12 @@ point_df <-
     radians = degrees*pi/180,
     # calculate coordinate on a circle of given distance and angle from
     # the center, see notes for methods.
-    coord_x = center_x + radius * cos(radians),
-    coord_y = center_y + radius * sin(radians))
+    longitude = center_x + radius * cos(radians),
+    latitude = center_y + radius * sin(radians))
 
+
+circle_coords <- st_as_sf(point_df, coords = c("longitude", "latitude"),
+                 crs = 2956, agr = "constant")
 
 # Visualize ---------------------------------------------------------------
 
@@ -90,5 +92,5 @@ ggplot() +
   geom_sf(data = ft_75) +
   geom_sf(data = ft_50) +
   geom_sf(data = ft_25) +
-  geom_sf(data = ft_coord)
+  geom_sf(data = ft_coord) + geom_sf(data = circle_coords, colour = "red")
 
