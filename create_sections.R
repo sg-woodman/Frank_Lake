@@ -55,54 +55,34 @@ ft_100 <- st_buffer(ft_coord, 100)
 ft_125 <- st_buffer(ft_coord, 125)
 ft_150 <- st_buffer(ft_coord, 150)
 
-## Convert degrees to radians
+## Create a dataframe of coordinates
 
-### Function to convert degrees to radians
-#### Input:
-####    degrees - units = degrees, class = numeric
-#### Output:
-####    radians - units = radians, class = numeric
-deg2rad <- function(deg) {
-  deg*pi/180
-}
-
-### Sequence of degrees at 22.5 increments
-#### Creates 16 sections
-degrees <- seq(0, 360, 22.5)
-
-### Run deg2rad function on the vector of degrees.
-radians <- deg2rad(degrees)
-
-
-## Calculate circle coordinates
-### Using the links provided in the notes section a set of coordinates for each
-### radius and angle are calculated
-### Method assumes 0° is at the 3 o'clock position on the circle
-#### Inputs:
-####    r - radius; units = meters; class = numeric
-####    a - angle; units = radians, class = numeric
+point_df <-
+  # convert sf point object to x,y coordinates
+  st_coordinates(ft_coord) %>%
+  # convert to dataframe
+  as.data.frame() %>%
+  # rename columns
+  rename(center_x = X,
+         center_y = Y) %>%
+  # create dataframe from all combinations of inputs
+  expand_grid(.,
+              # degrees at 22.5 degree increments
+              degrees = seq(0, 360, 22.5),
+              # distance from flux tower at 25 m increments
+              radius = seq(25, 150, 25)) %>%
+  # calculate new variables
+  mutate(
+    # convert degrees to radians
+    radians = degrees*pi/180,
+    # calculate coordinate on a circle of given distance and angle from
+    # the center, see notes for methods.
+    coord_x = center_x + radius * cos(radians),
+    coord_y = center_y + radius * sin(radians))
 
 
-x = 25*(cos(67.5))
-y = 25*(sin(67.5))
+# Visualize ---------------------------------------------------------------
 
-x
-y
-
-x = cx + r * cos(a)
-y = cy + r * sin(a)
-
-x = 309667.5 + 25 * cos(0.3926991)
-y = 5600237 + 25 * sin(0.3926991)
-
-x
-y
-
-x = 25 * sin(pi * 2 * 0 / 360)
-y = 25 * cos(pi * 2 * 0 / 360)
-
-x
-y
 ggplot() +
   geom_sf(data = ft_150) +
   geom_sf(data = ft_125) +
