@@ -66,6 +66,7 @@ point_df <-
          center_y = Y) %>%
   # create dataframe from all combinations of inputs
   expand_grid(.,
+              # TODO remove points along inner circles since they are unnecessary
               # degrees at 22.5 degree increments
               degrees = seq(0, 337.5, 22.5),
               # distance from flux tower at 25 m increments
@@ -82,6 +83,9 @@ point_df <-
 
 circle_coords <- st_as_sf(point_df, coords = c("longitude", "latitude"),
                  crs = 2956, agr = "constant")
+
+# TODO create lines from center to outer (150 m) points
+# TODO test clipping polygons by lnes
 
 # Visualize ---------------------------------------------------------------
 
