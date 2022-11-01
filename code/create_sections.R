@@ -88,7 +88,6 @@ point_df <-
          center_y = Y) %>%
   # create dataframe from all combinations of inputs
   expand_grid(.,
-              # TODO remove points along inner circles since they are unnecessary
               # degrees at 22.5 degree increments
               degrees = seq(0, 337.5, 22.5),
               # points at 150 m, furthest from flux tower
@@ -110,9 +109,31 @@ point_df <-
 circle_coords <- st_as_sf(point_df, coords = c("longitude", "latitude"),
                  crs = 2956, agr = "constant")
 
-# TODO create lines from center to outer (150 m) points
+## Create lines from center to outer (150 m) points
 
-
+ft_lines <- ft_pnt %>%
+  # convert to numeric values of coordinates
+  st_coordinates() %>%
+  as.data.frame() %>%
+  # set name to identify line start
+  mutate(name = "flux_tower") %>%
+  # rename columns
+  rename(latitude = Y, longitude = X) %>%
+  # expand df so all angles from center are included
+  expand_grid(.,
+              id = unique(point_df$id)) %>%
+  # bind point lat/lon values to df
+  bind_rows(., point_df %>%
+              # add name to indentify endpoint
+              mutate(name = "end")) %>%
+  # convert to spatial dataframe
+  st_as_sf(coords = c("longitude", "latitude"),
+           crs = 2956) %>%
+  group_by(id) %>%
+  # unite points by id to create geometry with start and endpoint
+  summarise() %>%
+  # convert to line
+  st_cast("LINESTRING")
 
 # TODO test clipping polygons by lnes
 
