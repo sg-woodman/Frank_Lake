@@ -38,10 +38,24 @@ options(scipen = 6, digits = 4)
 library(tidyverse)
 library(here)
 library(sf)
+library(measurements)
 
 # Load data ---------------------------------------------------------------
 
-ft_coord <- st_read(here("data/raw/flux_tower.gpkg"))
+## Coordiantes from Larry
+ft_coords <- tibble(latitude = "50 31 20.9", # N
+               longitude = "113 41 4.47") # W
+
+# Convert from DMS to decimal degrees
+lat <- conv_unit(ft_coords$latitude, from = "deg_min_sec", to = "dec_deg")
+long <- conv_unit(ft_coords$longitude , from = "deg_min_sec", to = "dec_deg")
+
+## Create spatial dataframe for flux tower
+ft_pnt <- tibble(name = "flux tower",
+             latitude = as.numeric(lat),
+             longitude = as.numeric(long)) %>%
+  st_as_sf(., coords = c("longitude", "latitude"),
+           crs = 4326, agr = "constant")
 
 # Process -----------------------------------------------------------------
 
@@ -79,7 +93,9 @@ point_df <-
     # the center, see notes for methods.
     longitude = center_x + radius * cos(radians),
     latitude = center_y + radius * sin(radians),
+    # create ID colum
     id = paste0(degrees, "_", radius)) %>%
+  # move ID column first position in DF
   relocate(id)
 
 
