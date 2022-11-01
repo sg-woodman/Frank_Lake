@@ -39,6 +39,7 @@ library(tidyverse)
 library(here)
 library(sf)
 library(measurements)
+library(buffeRs)
 
 # Load data ---------------------------------------------------------------
 
@@ -119,33 +120,14 @@ point_df <-
 circle_coords <- st_as_sf(point_df, coords = c("longitude", "latitude"),
                  crs = 2956, agr = "constant")
 
-## Create lines from center to outer (150 m) points
+## Create wedge shaped buffers
 
-ft_lines <- ft_pnt %>%
-  # convert to numeric values of coordinates
-  st_coordinates() %>%
-  as.data.frame() %>%
-  # set name to identify line start
-  mutate(name = "flux_tower") %>%
-  # rename columns
-  rename(latitude = Y, longitude = X) %>%
-  # expand df so all angles from center are included
-  expand_grid(.,
-              id = unique(point_df$id)) %>%
-  # bind point lat/lon values to df
-  bind_rows(., point_df %>%
-              # add name to indentify endpoint
-              mutate(name = "end")) %>%
-  # convert to spatial dataframe
-  st_as_sf(coords = c("longitude", "latitude"),
-           crs = 2956) %>%
-  group_by(id) %>%
-  # unite points by id to create geometry with start and endpoint
-  summarise() %>%
-  # convert to line
-  st_cast("LINESTRING")
+wedge_buff <- seq(11.25, 360, 22.5) %>%
+  as.list() %>%
+  map(~buffer_wedge(ft_pnt, 150, .x, 11.25))
 
-# TODO test clipping polygons by lnes
+
+# TODO test clipping polygons
 
 # Visualize ---------------------------------------------------------------
 
@@ -159,5 +141,7 @@ ggplot() +
   geom_sf(data = ft_pnt) +
   geom_sf(data = circle_coords, colour = "red") +
   geom_sf(data = ft_lines, colour = "blue") +
+  geom_sf(data = test99[[1]], colour = "green") +
+  geom_sf(data = test99[[5]], colour = "yellow") +
   coord_sf(datum = st_crs(ft_150))
 
