@@ -70,12 +70,22 @@ ft_pnt <- ft_coord_drone
 ## Create circles increasing 25 m increments around the flux tower
 ### Buffer function create a polygon with the distance argument determining the
 ### radius of the circle.
-ft_25 <- st_buffer(ft_pnt, 25)
-ft_50 <- st_buffer(ft_pnt, 50)
-ft_75 <- st_buffer(ft_pnt, 75)
-ft_100 <- st_buffer(ft_pnt, 100)
-ft_125 <- st_buffer(ft_pnt, 125)
-ft_150 <- st_buffer(ft_pnt, 150)
+
+create_buffer <- function(pnt, dist) {
+  ## create a polygon with a given radius from the center
+  ## inputs:
+  ##    - pnt = center point spatial object
+  ##    - dist = distance from center
+  st_buffer(pnt, dist) %>%
+    mutate(radius = paste0("dist_", dist))
+}
+
+ft_25 <- create_buffer(ft_pnt, 25)
+ft_50 <- create_buffer(ft_pnt, 50)
+ft_75 <- create_buffer(ft_pnt, 75)
+ft_100 <- create_buffer(ft_pnt, 100)
+ft_125 <- create_buffer(ft_pnt, 125)
+ft_150 <- create_buffer(ft_pnt, 150)
 
 ## Create a dataframe of coordinates
 point_df <-
