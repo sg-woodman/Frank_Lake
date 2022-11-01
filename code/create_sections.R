@@ -44,7 +44,7 @@ library(measurements)
 
 ## Coordiantes from Larry
 ft_gps <- tibble(latitude = "50 31 20.9", # N
-               longitude = "113 41 4.47") # W
+               longitude = "-113 41 04.47") # W
 
 # Convert from DMS to decimal degrees
 lat <- conv_unit(ft_gps$latitude, from = "deg_min_sec", to = "dec_deg")
@@ -56,7 +56,7 @@ ft_coords <- tibble(name = "flux tower",
              longitude = as.numeric(long)) %>%
   st_as_sf(., coords = c("longitude", "latitude"),
            crs = 4326, agr = "constant") %>%
-  st_transform(2956)
+  st_transform(crs = 2956)
 
 # Process -----------------------------------------------------------------
 
