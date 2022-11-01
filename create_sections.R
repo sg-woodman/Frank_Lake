@@ -78,7 +78,9 @@ point_df <-
     # calculate coordinate on a circle of given distance and angle from
     # the center, see notes for methods.
     longitude = center_x + radius * cos(radians),
-    latitude = center_y + radius * sin(radians))
+    latitude = center_y + radius * sin(radians),
+    id = paste0(degrees, "_", radius)) %>%
+  relocate(id)
 
 
 circle_coords <- st_as_sf(point_df, coords = c("longitude", "latitude"),
@@ -96,5 +98,7 @@ ggplot() +
   geom_sf(data = ft_75) +
   geom_sf(data = ft_50) +
   geom_sf(data = ft_25) +
-  geom_sf(data = ft_coord) + geom_sf(data = circle_coords, colour = "red")
+  geom_sf(data = ft_coord) +
+  geom_sf(data = circle_coords, colour = "red") +
+  coord_sf(datum = st_crs(ft_150))
 
