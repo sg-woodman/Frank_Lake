@@ -43,19 +43,20 @@ library(measurements)
 # Load data ---------------------------------------------------------------
 
 ## Coordiantes from Larry
-ft_coords <- tibble(latitude = "50 31 20.9", # N
+ft_gps <- tibble(latitude = "50 31 20.9", # N
                longitude = "113 41 4.47") # W
 
 # Convert from DMS to decimal degrees
-lat <- conv_unit(ft_coords$latitude, from = "deg_min_sec", to = "dec_deg")
-long <- conv_unit(ft_coords$longitude , from = "deg_min_sec", to = "dec_deg")
+lat <- conv_unit(ft_gps$latitude, from = "deg_min_sec", to = "dec_deg")
+long <- conv_unit(ft_gps$longitude , from = "deg_min_sec", to = "dec_deg")
 
 ## Create spatial dataframe for flux tower
-ft_pnt <- tibble(name = "flux tower",
+ft_coords <- tibble(name = "flux tower",
              latitude = as.numeric(lat),
              longitude = as.numeric(long)) %>%
   st_as_sf(., coords = c("longitude", "latitude"),
-           crs = 4326, agr = "constant")
+           crs = 4326, agr = "constant") %>%
+  st_transform(2956)
 
 # Process -----------------------------------------------------------------
 
@@ -103,6 +104,9 @@ circle_coords <- st_as_sf(point_df, coords = c("longitude", "latitude"),
                  crs = 2956, agr = "constant")
 
 # TODO create lines from center to outer (150 m) points
+
+
+
 # TODO test clipping polygons by lnes
 
 # Visualize ---------------------------------------------------------------
