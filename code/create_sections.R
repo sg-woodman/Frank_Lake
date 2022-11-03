@@ -28,6 +28,7 @@
 ##   https://math.stackexchange.com/questions/676249/calculate-x-y-positions-in-circle-every-n-degrees
 ##   https://stackoverflow.com/questions/839899/how-do-i-calculate-a-point-on-a-circle-s-circumference/839931#839931
 
+
 # Options -----------------------------------------------------------------
 
 options(scipen = 6, digits = 4)
@@ -179,6 +180,7 @@ clip_wedge_polygons <- function(wedge) {
   rad25 <- st_intersection(ft_25, wedge)
 
   # progressively remove innermost section of wedge
+  ## need to use buffered circles not smaller radii to avoid clipping error
   sec150 <- st_difference(rad150, ft_125)
   sec125 <- st_difference(rad125, ft_100)
   sec100 <- st_difference(rad100, ft_75)
@@ -198,6 +200,9 @@ wedge_sections <- wedge_buff %>%
   mutate(area_m2 = as.numeric(st_area(.)))
 
 
+# Save outputs ------------------------------------------------------------
+
+st_write(ft_150, here("data/processed/150m_circle.gpkg"))
 st_write(wedge_sections, here("data/processed/flux_tower_sections.gpkg"))
 
 
