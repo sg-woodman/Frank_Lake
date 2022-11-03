@@ -194,10 +194,11 @@ clip_wedge_polygons <- function(wedge) {
 
 wedge_sections <- wedge_buff %>%
   map(clip_wedge_polygons) %>%
-  reduce(bind_rows)
+  reduce(bind_rows) %>%
+  mutate(area_m2 = as.numeric(st_area(.)))
 
 
-
+st_write(wedge_sections, here("data/processed/flux_tower_sections.gpkg"))
 
 
 # Visualize ---------------------------------------------------------------
