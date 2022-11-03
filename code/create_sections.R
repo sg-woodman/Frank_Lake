@@ -77,6 +77,8 @@ create_buffer <- function(pnt, dist) {
   ## inputs:
   ##    - pnt = center point spatial object
   ##    - dist = distance from center
+  ## outputs:
+  ##    - sf object
   st_buffer(pnt, dist) %>%
     mutate(radius = paste0("dist_", dist))
 }
@@ -122,12 +124,81 @@ circle_coords <- st_as_sf(point_df, coords = c("longitude", "latitude"),
 
 ## Create wedge shaped buffers
 
-wedge_buff <- seq(11.25, 360, 22.5) %>%
+### Function assumes 0° is at the 12 o'clock position
+### Wedges are created such that the degree width is split evenly on either
+### side of the degree argument
+###
+### Helper functions
+#### Name wedges according to angle, 0 at 12 o'clock position
+name_wedge <- function(df, x) {
+  df$angle = paste0(x)
+  return(df)
+}
+#### Sequence used to create names for wedges based on angle
+nam <- sprintf("angle_%g", seq(0, 360-22.5, 22.5)) %>%
+  as.list()
+#### Rename geometry colimn as geometry
+rename_geom <- function(df) {
+  df %>%
+    rename(geometry = x)
+}
+
+wedge_buff <-
+  # sequence of degrees of interest
+  seq(11.25, 360, 22.5) %>%
+  # convert to list
   as.list() %>%
-  map(~buffer_wedge(ft_pnt, 150, .x, 11.25))
+  # apply over the various degrees specified above
+  map(~buffer_wedge(ft_pnt,
+                    radius  = 150,
+                    degree = .x,
+                    degree_width = 11.25)) %>%
+  # convert to sf data frame class
+  map(st_as_sf) %>%
+  map(st_cast) %>%
+  map2(., nam, name_wedge) %>%
+  map(rename_geom)
 
 
-# TODO test clipping polygons
+## Create individual sections
+
+clip_wedge_polygons <- function(wedge) {
+
+  ## clip circular buffers to with each wedge
+  ## inputs:
+  ##    - wedge = wedge created using buffeRs
+  ## outputs:
+  ##    - individual sections of each wedge
+
+  # clip circular buffers using wedge
+  rad150 <- st_intersection(ft_150, wedge)
+  rad125 <- st_intersection(ft_125, wedge)
+  rad100 <- st_intersection(ft_100, wedge)
+  rad75 <- st_intersection(ft_75, wedge)
+  rad50 <- st_intersection(ft_50, wedge)
+  rad25 <- st_intersection(ft_25, wedge)
+
+  # progressively remove innermost section of wedge
+  sec150 <- st_difference(rad150, ft_125)
+  sec125 <- st_difference(rad125, ft_100)
+  sec100 <- st_difference(rad100, ft_75)
+  sec75 <- st_difference(rad75, ft_50)
+  sec50 <- st_difference(rad50, ft_25)
+  sec25 <- rad25
+
+  out <- bind_rows(sec150, sec125, sec100, sec75, sec50, sec25) %>%
+    mutate(id = paste0(angle, "_", radius))
+
+  return(out)
+}
+
+wedge_sections <- wedge_buff %>%
+  map(clip_wedge_polygons) %>%
+  reduce(bind_rows)
+
+
+
+
 
 # Visualize ---------------------------------------------------------------
 
