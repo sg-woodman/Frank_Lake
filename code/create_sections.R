@@ -93,9 +93,9 @@ ft_150 <- create_buffer(ft_pnt, 150)
 
 #### Create circleas for cleaning raster
 ft_200 <- create_buffer(ft_pnt, 200)
-st_write(ft_200, here("data/processed/ft_circle_200m.gpkg"))
+st_write(ft_200, here("data/processed/200m_circle.gpkg"))
 ft_250 <- create_buffer(ft_pnt, 250)
-st_write(ft_250, here("data/processed/ft_circle_250m.gpkg"))
+st_write(ft_250, here("data/processed/250m_circle.gpkg"))
 
 
 ## Create a dataframe of coordinates
