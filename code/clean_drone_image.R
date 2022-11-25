@@ -45,19 +45,28 @@ ft_raster <- dropLayer(ft_raster, 4)
 
 ## Vector data
 ft_150 <- vect(here("data/processed/150m_circle.gpkg"))
+ft_200 <- vect(here("data/processed/200m_circle.gpkg"))
 
 
 
 # Rasterize vectors -------------------------------------------------------
 
-ft_150$val <- 1
+ft_200$val <- 1
 
-ft_150_rast <- rasterize(ft_150, ft_rast, "val", background = NA, sum = F) %>%
-  crop(., ft_150)
+ft_200_rast <- rasterize(ft_200, ft_rast, "val", background = NA, sum = F) %>%
+  crop(., ft_200)
 
 # Mask raster -------------------------------------------------------------
 
-test <- ft_rast %>%
-  terra::crop(., ft_150) %>%
+frank_rgb_cropped_200 <- ft_rast %>%
+  terra::crop(., ft_200) %>%
   # mask values outside aou
-  terra::mask(., ft_150_rast)
+  terra::mask(., ft_200_rast)
+
+names(frank_rgb_cropped_200) <- c("red", "green", "blue")
+
+# Save output -------------------------------------------------------------
+
+writeRaster(frank_rgb_cropped_200, here("data/processed/cropped_raster.tif"),
+            overwrite = T)
+
