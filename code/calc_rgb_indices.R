@@ -41,23 +41,23 @@ library(uavRst)
 # Load data ---------------------------------------------------------------
 
 ## Cropped raster
-raster_cropped_30cm <- stack(here("data/processed/cropped_raster_30cm.tif"))
+masked_raster_cropped_30cm <- stack(here("data/processed/masked_cropped_raster_30cm.tif"))
 
 
 # Calculate indices -------------------------------------------------------
 tictoc::tic()
-ft_rgb_indices <- rgb_indices(red   = raster_cropped_30cm[[1]], # red band
-                              green = raster_cropped_30cm[[2]], # blue band
-                              blue  = raster_cropped_30cm[[3]], # green band
+ft_rgb_indices <- rgb_indices(red   = masked_raster_cropped_30cm[[1]], # red band
+                              green = masked_raster_cropped_30cm[[2]], # blue band
+                              blue  = masked_raster_cropped_30cm[[3]], # green band
                               # all indices provided by the uavRst package
                               rgbi = c("VVI", "VARI", "NDTI", "RI", "SCI",
-                                       "BI", "SI", "HI", "TGI", "GLI", "NGRDI",
-                                       "GRVI", "GLAI", "HUE", "CI", "SAT", "SHP"))
+                                       "BI", "SI", "HI", "TGI", "GLI",
+                                       "NGRDI", "GLAI", "CI", "SAT", "SHP"))
 tictoc::toc()
 
 # Visualize ---------------------------------------------------------------
 
-plotRGB(raster_cropped_30cm)
+plotRGB(masked_raster_cropped_30cm)
 
 plot(ft_rgb_indices[[1]])
 plot(ft_rgb_indices[[2]])
@@ -74,7 +74,6 @@ plot(ft_rgb_indices[[12]])
 plot(ft_rgb_indices[[13]])
 plot(ft_rgb_indices[[14]])
 plot(ft_rgb_indices[[15]])
-plot(ft_rgb_indices[[16]])
-plot(ft_rgb_indices[[17]])
+
 
 
