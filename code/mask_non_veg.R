@@ -83,11 +83,15 @@ masked_cropped_raster_30cm <- cropped_raster_30cm %>%
   terra::mask(., instruments_rast) %>%
   terra::mask(., path_rast)
 
+names(masked_cropped_raster_30cm) <- c("red", "green", "blue")
 
 # Visualize output --------------------------------------------------------
 
 plot(masked_cropped_raster_30cm)
+plotRGB(masked_cropped_raster_30cm)
 
 # Save output -------------------------------------------------------------
 
-writeRaster(masked_cropped_raster_30cm, here("data/processed/masked_cropped_raster_30cm.tif"))
+writeRaster(masked_cropped_raster_30cm,
+            here("data/processed/masked_cropped_raster_30cm.tif"),
+            overwrite = T)
