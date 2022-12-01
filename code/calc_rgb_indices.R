@@ -55,6 +55,8 @@ ft_rgb_indices <- rgb_indices(red   = masked_raster_cropped_30cm[[1]], # red ban
                                        "NGRDI", "GLAI", "CI", "SAT", "SHP"))
 tictoc::toc()
 
+ft_rgb_indices <- rast(ft_rgb_indices)
+
 # Visualize ---------------------------------------------------------------
 
 plotRGB(masked_raster_cropped_30cm)
@@ -75,5 +77,9 @@ plot(ft_rgb_indices[[13]])
 plot(ft_rgb_indices[[14]])
 plot(ft_rgb_indices[[15]])
 
+# Save output -------------------------------------------------------------
 
+terra::writeRaster(ft_rgb_indices,
+                    here("data/processed/ft_rgb_indices.tif"),
+                    overwrite = T)
 
