@@ -102,8 +102,8 @@ sample_xy <- as.matrix(geom(classes_pnts)[,c('x','y')])
 sample_xy_no_island <- as.matrix(geom(classes_pnts_no_island)[,c('x','y')])
 
 ### extract the values of the ft raster at each sample coordinate
-class_df <- extract(ft_rast, sample_xy)
-class_df_no_island <- extract(ft_rast, sample_xy_no_island)
+class_df <- terra::extract(ft_rast, sample_xy)
+class_df_no_island <- terra::extract(ft_rast, sample_xy_no_island)
 
 ### create df for modelling by combining raster values and manual id names
 sampdata <- data.frame(class = classes_pnts$name, class_df)
@@ -284,3 +284,9 @@ PA <- diag / colsums # Producer accuracy
 UA <- diag / rowsums # User accuracy
 outAcc_ni <- data.frame(producerAccuracy = PA, userAccuracy = UA)
 outAcc_ni
+
+
+# Save output -------------------------------------------------------------
+
+writeRaster(lc, here("data/processed/ml_class_island.tif"))
+writeRaster(lc_ni, here("data/processed/ml_class_no_island.tif"))
