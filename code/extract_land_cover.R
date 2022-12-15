@@ -16,14 +16,13 @@
 ##
 ##    lc_class_manual_raster - GeoTIFF of manually digitized land cover types
 ##
-##    ml_class_island - GeoTIFF of land cover classified by CART model. The
-##                      central island, which is a mix of Bulrush and Hordeum
-##                      is included in the classification
+##    ml_class - GeoTIFF of land cover classified by CART model. The
+##               central island, which is a mix of ??Puccinellia?? and Hordeum
+##               is included in the classification
 ##
-##    ml_class_no_island - GeoTIFF of land cover classified by CART model. The
-##                         island is not included in the classification which
-##                         allows for island vegetation to be classified as
-##                         Bulrush or Hordeum individually.
+##    ml_class_manual - GeoTIFF with the island pixels set using the manually
+##                      delineated polygons and the surround vegetation
+##                      classified according the the CART model.
 ##
 ##
 ##
@@ -32,6 +31,12 @@
 ##
 ##
 ## Notes:
+##    - Since the island is a combination is a mixture of species the CART
+##    model has higher error for this section. The island is visually distinct
+##     so combining the two methods produces a potentially more accurate output.
+##     Furthermore, the flux tower has a "dead zone" immediately surround the
+##     tower. This area completely contains the island so a less precise
+##     manually vegetation estimate is a safe assumption.
 ##
 ##
 # Options -----------------------------------------------------------------
@@ -57,8 +62,7 @@ wedge_sections <- vect(here("data/processed/flux_tower_sections.gpkg"))
 ## Raster
 
 lc_class_manual_raster <- rast(here("data/processed/lc_class_manual_raster.tif"))
-ml_class_island <- rast(here("data/processed/ml_class_island.tif"))
-ml_class_no_island <- rast(here("data/processed/ml_class_no_island.tif"))
+ml_class <- rast(here("data/processed/ml_class.tif"))
 
 ## Constants
 cell_size_m <- 0.2375003
@@ -90,7 +94,7 @@ lc_manual_extract <- terra::extract(lc_class_manual_raster,
          prop_area = class_area_m2/total_area_m2,
          method = "manual")
 
-ml_island_extract <- terra::extract(ml_class_island,
+ml_island_extract <- terra::extract(ml_class,
                                     wedge_sections,
                                     ID = T, weights = T) %>%
   as.data.frame() %>%
@@ -103,7 +107,7 @@ ml_island_extract <- terra::extract(ml_class_island,
   filter(!is.na(class)) %>%
   mutate(total_area_m2 = sum(class_area_m2),
          prop_area = class_area_m2/total_area_m2,
-         method = "ml_island")
+         method = "cart")
 
 ml_no_island_extract <- terra::extract(ml_class_no_island,
                                        wedge_sections,
