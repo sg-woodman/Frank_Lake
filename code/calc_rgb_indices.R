@@ -61,21 +61,21 @@ ft_rgb_indices <- rast(ft_rgb_indices)
 
 plotRGB(masked_raster_cropped_30cm)
 
-plot(ft_rgb_indices[[1]])
-plot(ft_rgb_indices[[2]])
-plot(ft_rgb_indices[[3]])
-plot(ft_rgb_indices[[4]])
-plot(ft_rgb_indices[[5]])
-plot(ft_rgb_indices[[6]])
-plot(ft_rgb_indices[[7]])
-plot(ft_rgb_indices[[8]])
-plot(ft_rgb_indices[[9]])
-plot(ft_rgb_indices[[10]])
-plot(ft_rgb_indices[[11]])
-plot(ft_rgb_indices[[12]])
-plot(ft_rgb_indices[[13]])
-plot(ft_rgb_indices[[14]])
-plot(ft_rgb_indices[[15]])
+plot(ft_rgb_indices[[1]]) #VVI
+plot(ft_rgb_indices[[2]]) #VARI
+plot(ft_rgb_indices[[3]]) #NDTI
+plot(ft_rgb_indices[[4]]) #RI
+plot(ft_rgb_indices[[5]]) #SCI
+plot(ft_rgb_indices[[6]]) #BI
+plot(ft_rgb_indices[[7]]) #SI
+plot(ft_rgb_indices[[8]]) #HI
+plot(ft_rgb_indices[[9]]) #TGI
+plot(ft_rgb_indices[[10]]) #GLI
+plot(ft_rgb_indices[[11]]) #NGRDI
+plot(ft_rgb_indices[[12]]) #GLAI
+plot(ft_rgb_indices[[13]]) #CI
+plot(ft_rgb_indices[[14]]) #SAT
+plot(ft_rgb_indices[[15]]) #SHP
 
 # Save output -------------------------------------------------------------
 
