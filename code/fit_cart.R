@@ -16,7 +16,8 @@
 ## Inputs:
 ##    - ft_rgb_indices: GeoTIFF of rgb indices calculated using uavRst
 ##    - masked_cropped_raster_30cm: GeoTIFF of cleaned drone imagery
-##    - manual_classes: GPKG of manually delineated surface clasess
+##    - manual_classes: GPKG of subset of manually delineated surface classes
+##    - island: GPKG of completley digitized land cover classes
 ##
 ## Outputs:
 ##
@@ -49,16 +50,20 @@ options(scipen = 6, digits = 4)
 library(tidyverse)
 library(here)
 library(terra)
+library(sf)
 library(rpart)
 
 # Load data ---------------------------------------------------------------
+
+## Vectors
+classes <- vect(here("data/raw/manual_classes.gpkg"))
+full_classes <- st_read(here("data/processed/lc_class_manual.gpkg"))
 
 ## Rasters
 ft_rgb_indices <- rast(here("data/processed/ft_rgb_indices.tif"))
 masked_cropped_raster_30cm <- rast(here("data/processed/masked_cropped_raster_30cm.tif"))
 
-## Vectors
-classes <- vect(here("data/raw/manual_classes.gpkg"))
+
 
 # Preprocess --------------------------------------------------------------
 
@@ -66,6 +71,25 @@ classes <- vect(here("data/raw/manual_classes.gpkg"))
 ### raster dataset need to be combined so both RGB and RGB indices are in one
 ### object
 ft_rast <- c(masked_cropped_raster_30cm, ft_rgb_indices)
+
+## Mask island
+### mask the island out of the combined raster image classify only Hordeum,
+### Bulrush, and barren pixels
+island_mask <- full_classes %>%
+  # slecet only island
+  filter(name == "Island") %>%
+  # set island to 1
+  mutate(id = 0) %>%
+  # convert to SpatVector
+  vect() %>%
+  # rasterize using id, set background to 1
+  rasterize(., ft_rast,
+            field = "id", background = "1") %>%
+  # set 0 to NA
+  classify(.,
+           cbind(0, NA))
+
+ft_rast_no_island <- mask(ft_rast, island_mask)
 
 ## Select classes of interest
 ### remove unwanted classes for RF
@@ -103,7 +127,7 @@ sample_xy_no_island <- as.matrix(geom(classes_pnts_no_island)[,c('x','y')])
 
 ### extract the values of the ft raster at each sample coordinate
 class_df <- terra::extract(ft_rast, sample_xy)
-class_df_no_island <- terra::extract(ft_rast, sample_xy_no_island)
+class_df_no_island <- terra::extract(ft_rast_no_island, sample_xy_no_island)
 
 ### create df for modelling by combining raster values and manual id names
 sampdata <- data.frame(class = classes_pnts$name, class_df)
@@ -130,7 +154,7 @@ classified <- predict(ft_rast, cartmodel, na.rm = TRUE)
 classified
 plot(classified)
 
-classified_no_island <- predict(ft_rast, cartmodel_no_island, na.rm = TRUE)
+classified_no_island <- predict(ft_rast_no_island, cartmodel_no_island, na.rm = TRUE)
 classified_no_island
 plot(classified_no_island)
 
@@ -288,5 +312,5 @@ outAcc_ni
 
 # Save output -------------------------------------------------------------
 
-writeRaster(lc, here("data/processed/ml_class_island.tif"))
-writeRaster(lc_ni, here("data/processed/ml_class_no_island.tif"))
+writeRaster(lc, here("data/processed/ml_class_island.tif"), overwrite = T)
+writeRaster(lc_ni, here("data/processed/ml_class_no_island.tif"), overwrite = T)
