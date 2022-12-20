@@ -14,9 +14,10 @@
 ## Email: samuel.woodman@gmail.com
 ##
 ## Inputs:
-##    - ml_class: GeoTIFF of vegetation classifications using the rpart package
+##    - ml_class_no_island: GeoTIFF of vegetation classifications using the
+##                          rpart package. Island pixels were excluded.
 ##    - lc_class_manual_raster: GeoTIFF of manually digitized vegetation classes
-##    - ft_150: GPKG of 150 metre radius surrounding the fluxer tower to ensure
+##    - ft_150: GPKG of 150 metre radius surrounding the flux tower to ensure
 ##              rasters have some extent.
 ##
 ## Outputs:
@@ -45,7 +46,7 @@ ft_150 <- vect(here("data/processed/150m_circle.gpkg"))
 
 ## Raster
 ### crop and mask to set identical extents
-ml_class <- rast(here("data/processed/ml_class.tif")) %>%
+ml_class_no_island <- rast(here("data/processed/ml_class_no_island.tif")) %>%
   mask(ft_150) %>%
   crop(ft_150)
 lc_class_manual_raster <- rast(here("data/processed/lc_class_manual_raster.tif")) %>%
@@ -53,7 +54,7 @@ lc_class_manual_raster <- rast(here("data/processed/lc_class_manual_raster.tif")
   crop(ft_150)
 
 ## Visualize
-plot(ml_class)
+plot(ml_class_no_island)
 plot(lc_class_manual_raster)
 
 # Process -----------------------------------------------------------------
@@ -61,21 +62,34 @@ plot(lc_class_manual_raster)
 ## Create raster for masking island (island = 3)
 ### Keep only the island to add to ml_class
 lc_island_only <- classify(lc_class_manual_raster, # input raster
-                           cbind(3, 3), # keep values of 3 as 3
+                           cbind(3, 4), # set 3 to 4 for merging
                            others = NA) # set all other values to NA
+
+
 
 ### Remove island for masking ml_class
 lc_island_mask <- classify(lc_class_manual_raster, # input raster
                            cbind(3, NA)) # set 3 to NA
 
 
-## Mask CART raster
-
-test <- ml_class %>%
+## Combine CART and manual
+cart_manual_class <- ml_class_no_island %>%
+  # set factors to numeric (values 1 to 3)
+  as.numeric() %>%
+  # mask the island by setting to NA
   mask(., lc_island_mask) %>%
+  # add manually delineated island with value of 4
   merge(lc_island_only)
 
-levels(test) <- c("barren", "bulrush", "hordeum", "island")
+## Set back to named factors
+levels(cart_manual_class) <- data.frame(id=1:4,
+                                        class = c("barren", "bulrush",
+                                                 "hordeum", "island"))
 
+### Visualize
+plot(cart_manual_class)
 
-plot(test)
+# Save output -------------------------------------------------------------
+
+writeRaster(cart_manual_class, here("data/processed/cart_manual_class.tif"),
+            overwrite = TRUE)
