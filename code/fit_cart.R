@@ -17,7 +17,7 @@
 ##    - ft_rgb_indices: GeoTIFF of rgb indices calculated using uavRst
 ##    - masked_cropped_raster_30cm: GeoTIFF of cleaned drone imagery
 ##    - manual_classes: GPKG of subset of manually delineated surface classes
-##    - island: GPKG of completley digitized land cover classes
+##    - island: GPKG of completely digitized land cover classes
 ##
 ## Outputs:
 ##
@@ -29,8 +29,8 @@
 ##    are masked from the raster image and decreased the accuracy to
 ##    preliminary RF models
 ##    - Two approaches are used below in dealing with the island that is a mix
-##    of both Hordeum and Bulrush:
-##      - Keep the island as a separate class to be classified. This appraoch
+##    of both Hordeum and ??Puccinellia??:
+##      - Keep the island as a separate class to be classified. This approach
 ##      aligns with Larry's observation that the island is a mix of both these
 ##      species but results in a less accurate model.
 ##      - Remove the island as a class and allow the model to predict sections
