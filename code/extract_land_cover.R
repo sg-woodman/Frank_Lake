@@ -68,63 +68,95 @@ cell_size_m <- 0.2375003
 
 # Process -----------------------------------------------------------------
 
+## calc area of each wedge section
 wedge_sections %>%
   st_as_sf() %>%
   mutate(area_m2 = as.numeric(st_area(.)))
 
+## Manual delineation
+### extract number of pixels in each wedge section with additional column
+### specifying the weight (i.e. proportion of pixel within the section)
 lc_manual_extract <- terra::extract(lc_class_manual_raster,
                                     wedge_sections,
                                     ID = T, weights = T) %>%
+  # convert to data frame
   as.data.frame() %>%
+  # join wedge section areas using the ID column as guide
   left_join(., wedge_sections %>%
               as.data.frame() %>%
               mutate(ID = row_number())) %>%
+  # convert classes to named factors
   dplyr::mutate(class = case_when(name == 0 ~ "barren",
                                   name == 1 ~ "bulrush",
                                   name == 2 ~ "hordeum",
                                   name == 3 ~ "island",
                                   name == 4 ~ "boardwalk")) %>%
+  # calc area of each class as function of amount of cell in section
   mutate(area_m2 = weight*(cell_size_m*cell_size_m)) %>%
+  # sum within class and section id
   group_by(id, class) %>%
   summarise(class_area_m2 = sum(area_m2)) %>%
+  # remove boardwalk and NA
   filter(class != "boardwalk") %>%
   filter(!is.na(class)) %>%
+  # calc total area and prop of each class
   mutate(total_area_m2 = sum(class_area_m2),
          prop_area = class_area_m2/total_area_m2,
          method = "manual")
 
+## CART model
+### extract number of pixels in each wedge section with additional column
+### specifying the weight (i.e. proportion of pixel within the section)
 ml_island_extract <- terra::extract(ml_class_island,
                                     wedge_sections,
                                     ID = T, weights = T) %>%
+  # convert to data frame
   as.data.frame() %>%
+  # join wedge section areas using the ID column as guide
   left_join(., wedge_sections %>%
               as.data.frame() %>%
               mutate(ID = row_number())) %>%
+  # calc area of each class as function of amount of cell in section
   mutate(area_m2 = weight*(cell_size_m*cell_size_m)) %>%
+  # sum within class and section id
   group_by(id, class) %>%
   summarise(class_area_m2 = sum(area_m2)) %>%
+  # remove NA
   filter(!is.na(class)) %>%
+  # calc total area and prop of each class
   mutate(total_area_m2 = sum(class_area_m2),
          prop_area = class_area_m2/total_area_m2,
          method = "cart")
 
+## CART + manual island
+### extract number of pixels in each wedge section with additional column
+### specifying the weight (i.e. proportion of pixel within the section)
 cart_manual_extract <- terra::extract(cart_manual_class,
                                        wedge_sections,
                                        ID = T, weights = T) %>%
   as.data.frame() %>%
+  # join wedge section areas using the ID column as guide
   left_join(., wedge_sections %>%
               as.data.frame() %>%
               mutate(ID = row_number())) %>%
+  # calc area of each class as function of amount of cell in section
   mutate(area_m2 = weight*(cell_size_m*cell_size_m)) %>%
+  # sum within class and section id
   group_by(id, class) %>%
   summarise(class_area_m2 = sum(area_m2)) %>%
+  # remove NA
   filter(!is.na(class)) %>%
+  # calc total area and prop of each class
   mutate(total_area_m2 = sum(class_area_m2),
          prop_area = class_area_m2/total_area_m2,
          method = "cart_manual")
 
-
-bind_rows(lc_manual_extract,
+## Combine dfs
+df <- bind_rows(lc_manual_extract,
           ml_island_extract,
-          cart_manual_extract) %>% view()
+          cart_manual_extract)
 
+# Save output -------------------------------------------------------------
+
+
+write_csv(df, here("output/ft_radial_veg_composition.csv"))
