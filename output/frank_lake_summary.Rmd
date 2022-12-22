@@ -1,0 +1,204 @@
+---
+title: "Frank Lake Vegetation Composition"
+author: "Samuel G Woodman"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    self_contained: true
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(here)
+library(terra)
+library(sf)
+library(tidyterra)
+library(patchwork)
+library(RColorBrewer)
+```
+
+
+## Project description
+
+The area surrounding the Frank Lake flux tower is composed of several vegetation 
+types. These vegetation classes have been observed as a Hordeum, Bulrush, Barren, 
+and an central island that is a mix of Hordeum and ??Puccinellia??. Data from 
+the flux tower shows the prevailing wind directions are from the southwest and 
+northeast. Therefore, understanding the vegetation composition of these sections 
+will improve calculations of gas exchange measured by the flux tower. 
+
+## Packages
+
+Details of R software and package versions can be found in the renv.lock file of 
+the project directory. The renv package provides a method for loading all 
+packages need to recreate the work flow of this project. 
+
+## Data 
+
+On October 14, 2022 Stew Rood used the DJI drone to fly over the Frank Lake 
+study site. The resulting image was a RGB raster of approximately 3 cm spatial 
+resolution and was compiled by the DroneDeploy software. 
+
+Due to the fine spatial resolution the initial file was cropped and downscaled 
+to reduce the file size. A 200 m radius circle from the flux tower (center of 
+the island) was selected for cropping to ensure enough data for future image 
+classification. The raster was downscaled to the 30 cm using the aggregate 
+function from the R package terra (v 1.6.17). 30 cm was selected as a single 
+order of magnitude decrease in resolution from the initial image and therefore 
+would not split mixes in the process of averaging. 
+
+The resulting image can be seen below. Note that the boardwalk, ATV path, and 
+instruments have all been removed from the image by manually digitizing these 
+elements in QGIS and converting their values to NA. 
+
+```{r echo=FALSE}
+ft_rgb <- rast(here("data/processed/masked_cropped_raster_30cm.tif"))
+plotRGB(ft_rgb)
+```
+
+## Processing
+
+### Creating radial sections
+
+A series of sections originating from the flux tower were created to use as 
+extraction polygons for the vegetation classes. These sections were determined 
+by the angle and distance from the flux tower. Distances are set at 25 m 
+increments up to 150 m while angles will be set at 22.5° intervals. Note that 
+0° is at the 12 o'clock position of the image and go clockwise. The buffer_wedge 
+function from buffeRs (v 0.31) was used. 
+
+
+### RGB indices
+
+Following cleaning the initial RGB image, a series of indices were calculated 
+using the rgb_indices function from the uavRst package (v 0.6.0). More details 
+on the specific indices calculated can be found in the function help 
+documentation. Here, the following indices were input into our image 
+classification models: VVI, VARI, NDTI, RI, SCI, BI, SI, HI, TGI, GLI, NGRDI, 
+GLAI, CI, SAT, SHP. 
+
+Plots of these indices can be seen below.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ft_rgb_indices <- rast(here("data/processed/ft_rgb_indices.tif"))
+plot(ft_rgb_indices)
+```
+
+### Image classification
+
+To classify the vegetation present across the study area two methods were used. 
+
+1. Manual delineation of RGB image
+2. CART model using RGB and calculated indices
+
+The manual delineation approach used QGIS (v 3.24.2) to trace the outline of the
+island, Hordeum, and barren, and path areas. "Snap geometries to layer" function 
+in QGIS was used to with 1 meter tolerance fill small gaps between adjacent 
+classifications. The remaining unclassified space was then classified as Bulrush
+to limit added error of manually digitizing the larger area of the most dominant 
+class. 
+
+A classification and regression tree (CART) model was used to classify pixels 
+into each vegetation class using a subset of manually defined training points. 
+Within each subset up to 50,000 training points were selected. The points were 
+input into the rpart function from the rpart package (v 4.1.16) using method 
+"class" and minsplit of 5. 
+
+Since the island is a combination of two plant species the model struggles to 
+accurately predict the vegetation present. Therefore, two CART models were used, 
+1) where the island is included in the training points as it's own class and 2) 
+where the island is set to NA and removed from the model. In the latter option 
+the island was filled in using the manually delineated polygon since this feature 
+is easily defined by visual observation. 
+
+The CART models were evaluated using k-fold validations. The data data was split 
+into k=5 groups and the model is refit with one group being used for model 
+testing while the remaining will be used for model training. Following this 
+evaluation, the island included CART model had an overall accuracy of 0.84 while
+the island excluded CART model had an overall accuracy of 0.95. 
+
+Each method can be seen below in addition to the RGB image and the section 
+overlay
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ft_150 <- vect(here("data/processed/150m_circle.gpkg"))
+
+wedge_sections <- vect(here("data/processed/flux_tower_sections.gpkg"))
+
+frank_rgb_cropped_150 <- rast(here("data/processed/cropped_raster_150m_rad.tif"))
+
+lc_class_manual_raster <- rast(here("data/processed/lc_class_manual_raster.tif"))
+
+NAflag(lc_class_manual_raster) <- 4
+levels(lc_class_manual_raster) <- c("barren", "bulrush", "hordeum", "island")
+
+ml_class_island <- rast(here("data/processed/ml_class_island.tif")) %>%
+  mask(ft_150) %>%
+  crop(ft_150)
+
+cart_manual_class <- rast(here("data/processed/cart_manual_class.tif")) %>%
+  mask(ft_150) %>%
+  crop(ft_150)
+
+p0 <- ggplot() +
+  geom_spatraster_rgb(data = frank_rgb_cropped_150) +
+  geom_spatvector(data = wedge_sections, fill = NA) +
+  ggtitle("RGB") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+p1 <- ggplot() +
+  geom_spatraster(data = lc_class_manual_raster) +
+  geom_spatvector(data = wedge_sections, fill = NA) +
+  scale_fill_manual(labels = c("Barren", "Bulrush", "Hordeum", "Island"),
+                    values = c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3"),
+                    na.value = NA) +
+  ggtitle("Manual delineation") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+p2 <- ggplot() +
+  geom_spatraster(data = ml_class_island) +
+  geom_spatvector(data = wedge_sections, fill = NA) +
+  scale_fill_manual(labels = c("Barren", "Bulrush", "Hordeum", "Island"),
+                    values = c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3"),
+                    na.value = NA) +
+  ggtitle("CART - island included") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+p3 <- ggplot() +
+  geom_spatraster(data = cart_manual_class) +
+  geom_spatvector(data = wedge_sections, fill = NA) +
+  scale_fill_manual(labels = c("Barren", "Bulrush", "Hordeum", "Island"),
+                    values = c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3"),
+                    na.value = NA) +
+  ggtitle("CART + Manual") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+
+(p0 |p1) / (p2 |p3)
+
+```
+
+## Extraction
+
+The vegetation composition of each section was then extracted for each of the 
+three methods used (manual, CART, and CART + manual). Since the sections do not
+align perfectly with the pixels the proportion of each pixel within each section 
+was calculated and multiplied by the pixel resolution (0.2375003 m) to get the area. 
+Each vegetation type (Hordeum, Bulrush, Barren, and Island) were then summed to 
+get the total area of that class in each section. 
+
+As noted the boardwalk was excluded from these areas as it would not contribute 
+to the vegetation cover. Total area of each section and proportional composition 
+were also calculated. Sections are denoted by the angle and distance from the 
+flux tower. For example, angle_112.5_dist_100 indicates the section 112.5° from 
+12 o'clock and 100 m from the flux tower. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+DT::datatable(read_csv(here("output/ft_radial_veg_composition.csv"))) %>% 
+  DT::formatRound(columns=c('class_area_m2', 'total_area_m2', "prop_area"), digits=2)
+```
+
